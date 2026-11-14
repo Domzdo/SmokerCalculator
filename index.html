@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverse Smoker Timeline Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>Smoker Timeline Pro</h1>
+            <p class="subtitle">Reverse-calculate your exact prep, preheat, wrap, and pull schedule</p>
+        </header>
+
+        <form id="smokeForm">
+            <!-- 1. SCHEDULE TARGETS -->
+            <div class="section-title">1. Schedule &amp; Rest Targets</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="serveTime">Target Serve Time</label>
+                    <input type="datetime-local" id="serveTime" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="restTime">Cooler Rest Time (Hours)</label>
+                    <input type="number" id="restTime" step="0.25" min="0" max="12" value="2" required>
+                    <small id="restHint">Recommended: 2–4 hrs in an insulated cooler</small>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="prepType">Prep &amp; Dry Brine</label>
+                    <select id="prepType">
+                        <option value="1" selected>Trim &amp; Season Before Cook (1 hr)</option>
+                        <option value="12">Overnight Dry Brine (12 hrs prior)</option>
+                        <option value="24">24-Hour Dry Brine (24 hrs prior)</option>
+                        <option value="0">Already Prepped (Skip)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="preheatMins">Smoker Preheat Time</label>
+                    <select id="preheatMins">
+                        <option value="0">None (Already Hot)</option>
+                        <option value="30">30 Minutes (Pellet / Electric)</option>
+                        <option value="45" selected>45 Minutes (Charcoal / Kamado)</option>
+                        <option value="60">60 Minutes (Offset Stick Burner)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 2. MEAT DETAILS -->
+            <div class="section-title">2. Meat Details</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="meat">Meat Cut</label>
+                    <select id="meat" required>
+                        <optgroup label="Beef">
+                            <option value="brisket" selected>Packer Brisket</option>
+                            <option value="beef_ribs">Beef Plate / Dino Ribs</option>
+                            <option value="chuck_roast">Smoked Chuck Roast</option>
+                            <option value="tri_tip">Reverse-Seared Tri-Tip</option>
+                            <option value="prime_rib">Smoked Prime Rib Roast</option>
+                        </optgroup>
+                        <optgroup label="Pork">
+                            <option value="pork_butt">Boston Butt (Pulled Pork)</option>
+                            <option value="ribs">St. Louis / Spare Ribs (3-2-1)</option>
+                            <option value="baby_back_ribs">Baby Back Ribs (2-2-1)</option>
+                            <option value="pork_belly">Pork Belly Burnt Ends</option>
+                        </optgroup>
+                        <optgroup label="Poultry &amp; Seafood">
+                            <option value="chicken">Whole Chicken</option>
+                            <option value="turkey">Whole Turkey</option>
+                            <option value="turkey_breast">Boneless Turkey Breast</option>
+                            <option value="salmon">Smoked Salmon Fillet</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group" id="weightGroup">
+                    <label for="weight">Trimmed Weight (lbs)</label>
+                    <input type="number" id="weight" step="0.1" min="0.5" max="40" value="13.5" required>
+                    <small id="weightHint">Cook time scales with weight</small>
+                </div>
+            </div>
+
+            <div class="meat-info-banner" id="meatInfoBanner">
+                <strong>Target Internal Temp:</strong> <span id="targetTempText">~203°F (Probe Tender)</span> &bull;
+                <strong>Wrap Trigger:</strong> <span id="wrapTempText">~165°F–175°F once bark sets</span>
+            </div>
+
+            <!-- 3. COOK PHASES & WRAP -->
+            <div class="section-title">3. Cook Phases &amp; Wrap Method</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="wrapMethod">Wrap Method (Stall Factor)</label>
+                    <select id="wrapMethod">
+                        <option value="paper" selected>Butcher Paper / Foil Boat (Standard)</option>
+                        <option value="foil">Aluminum Foil / Texas Crutch (~18% faster P2)</option>
+                        <option value="naked">No Wrap / Naked (~20% slower P2, max bark)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="wrapTempGroup">
+                    <label for="wrapTempInput" id="wrapTempLabel">Target Wrap Internal Temp (°F)</label>
+                    <div class="flex-row">
+                        <input type="number" id="wrapTempInput" step="1" min="100" max="205" value="165" required>
+                        <button type="button" id="autoP1Btn" class="btn-secondary" title="Estimate Phase 1 hours needed to reach this wrap temp">Auto P1 Hrs</button>
+                    </div>
+                    <small id="wrapTempHint">Adjusts Phase 1 duration based on when you wrap</small>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Phase 1 (Initial Smoke to Wrap Temp)</label>
+                    <div class="flex-row">
+                        <select id="p1Temp" aria-label="Phase 1 Temperature">
+                            <option value="180" selected>180°F (Super Smoke)</option>
+                            <option value="200">200°F (Low Smoke)</option>
+                            <option value="225">225°F (Classic Low)</option>
+                            <option value="250">250°F (Standard)</option>
+                            <option value="275">275°F (Hot &amp; Fast)</option>
+                        </select>
+                        <input type="number" id="p1Hours" step="0.25" min="0" max="24" value="4" placeholder="Hours" aria-label="Phase 1 Hours">
+                    </div>
+                    <small id="p1HoursHint">Estimated hours to reach 165°F internal (or set custom hours).</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="p2Temp">Phase 2 (Wrapped / Finish Temp)</label>
+                    <div class="flex-row">
+                        <select id="p2Temp">
+                            <option value="200">200°F Pit</option>
+                            <option value="225">225°F Pit</option>
+                            <option value="250" selected>250°F Pit</option>
+                            <option value="275">275°F Pit</option>
+                            <option value="300">300°F Pit</option>
+                        </select>
+                        <input type="number" id="pullTempInput" step="1" min="115" max="212" value="203" title="Target Final Pull Internal Temp (°F)" aria-label="Target Pull Internal Temp (°F)">
+                    </div>
+                    <small>Smoker finish temp &amp; target pull internal temp (°F).</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="smokerInsulation">Smoker Style (Weather Sensitivity)</label>
+                <select id="smokerInsulation">
+                    <option value="insulated">Kamado / Double-Wall Insulated (Low Weather Impact)</option>
+                    <option value="standard" selected>Pellet Grill / WSM / Drum (Moderate Impact)</option>
+                    <option value="thin">Offset Stick Burner / Thin Steel (High Impact)</option>
+                </select>
+            </div>
+
+            <!-- 4. LIVE WEATHER & BUFFER -->
+            <div class="section-title">4. Live Weather Forecast &amp; Buffer</div>
+            <div class="weather-box">
+                <div class="weather-controls">
+                    <div class="location-search">
+                        <input type="text" id="locationInput" placeholder="City or ZIP (e.g., Austin, TX or 78701)">
+                        <button type="button" id="searchWeatherBtn" class="btn-secondary">Find</button>
+                        <button type="button" id="geoWeatherBtn" class="btn-secondary" title="Use browser GPS location">📍 Use GPS</button>
+                    </div>
+                    <div class="weather-toggle-row">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="applyWeatherFactor" checked>
+                            Adjust cook time automatically using live hourly weather during cook window
+                        </label>
+                    </div>
+                </div>
+
+                <div id="weatherStatus" class="weather-status">
+                    Set your location above to pull hourly temperature, wind, and rain forecasts for your exact cook window.
+                </div>
+
+                <div id="weatherCard" class="weather-card hidden">
+                    <div class="weather-card-header">
+                        <span id="weatherLocName" class="weather-loc-name">--</span>
+                        <span id="weatherBadge" class="weather-badge">Ideal Conditions</span>
+                    </div>
+                    <div class="weather-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Avg Cook Temp</span>
+                            <span class="metric-val" id="wAvgTemp">--°F</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Low Temp</span>
+                            <span class="metric-val" id="wMinTemp">--°F</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Max Wind</span>
+                            <span class="metric-val" id="wMaxWind">-- mph</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Precip Chance</span>
+                            <span class="metric-val" id="wPrecip">--%</span>
+                        </div>
+                    </div>
+                    <div id="weatherImpactNote" class="weather-impact-note"></div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="safetyBuffer">Extra Safety / Stall Buffer (Hours)</label>
+                <select id="safetyBuffer">
+                    <option value="0">0 hrs (Exact Estimate)</option>
+                    <option value="0.5" selected>+0.5 hrs (30 min Cushion)</option>
+                    <option value="1">+1.0 hr (Recommended for Big Cuts)</option>
+                    <option value="1.5">+1.5 hrs (Safe Hold Buffer)</option>
+                    <option value="2">+2.0 hrs (Extra-Long Cooler Hold)</option>
+                </select>
+                <small>Shifts start time earlier so a stubborn stall never delays dinner.</small>
+            </div>
+
+            <!-- 5. MID-COOK REMINDERS -->
+            <div class="section-title">5. Mid-Cook Checkpoints</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="spritzInterval">Spritz / Mop Interval</label>
+                    <select id="spritzInterval">
+                        <option value="0">None</option>
+                        <option value="45">Every 45 Minutes</option>
+                        <option value="60" selected>Every 60 Minutes</option>
+                        <option value="90">Every 90 Minutes</option>
+                    </select>
+                    <small>Starts after the first 2 hours so bark can set.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="fuelInterval">Fuel / Wood Check Interval</label>
+                    <select id="fuelInterval">
+                        <option value="0">None</option>
+                        <option value="45">Every 45 Mins (Offset Splits)</option>
+                        <option value="90">Every 90 Mins (Charcoal / Chunks)</option>
+                        <option value="180" selected>Every 3 Hours (Pellet Hopper Check)</option>
+                    </select>
+                    <small>Adds pit maintenance reminders to timeline.</small>
+                </div>
+            </div>
+
+            <label class="checkbox-label" style="margin-bottom: 1rem;">
+                <input type="checkbox" id="showDetailedChecks">
+                Expand every individual spritz &amp; fuel check step inside the timeline list
+            </label>
+
+            <button type="submit" class="btn-primary">Calculate Reverse Timeline</button>
+        </form>
+
+        <!-- RESULTS SECTION -->
+        <div id="results" class="hidden">
+            <div class="results-header">
+                <h2>Your Reverse Cook Timeline</h2>
+                <div class="summary-pills" id="summaryPills"></div>
+                <div class="progress-tracker" id="progressTracker">
+                    <div class="progress-info">
+                        <span id="progressText">0 of 0 steps completed (0%)</span>
+                        <button type="button" id="resetProgressBtn" class="btn-link hidden">Reset Progress</button>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <ul id="timelineList"></ul>
+
+            <!-- EXPORT & SHARE ACTIONS -->
+            <div class="action-bar">
+                <button type="button" id="copyTimelineBtn" class="btn-action">📋 Copy Schedule</button>
+                <button type="button" id="exportIcsBtn" class="btn-action">📅 Export Calendar (.ics)</button>
+                <button type="button" id="printTimelineBtn" class="btn-action">🖨️ Print</button>
+            </div>
+
+            <!-- SAVE TO COOK LOG -->
+            <div class="cook-log-save">
+                <h3>Save to Pitmaster Cook Log</h3>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="logWood">Wood / Pellets Used</label>
+                        <input type="text" id="logWood" placeholder="e.g., Post Oak + Cherry">
+                    </div>
+                    <div class="form-group">
+                        <label for="logRub">Rub / Binder</label>
+                        <input type="text" id="logRub" placeholder="e.g., 16-mesh Black Pepper, Kosher Salt, Mustard">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="logNotes">Cook Notes</label>
+                    <textarea id="logNotes" rows="2" placeholder="Trim weight, stall temp, or reminders for next time..."></textarea>
+                </div>
+                <button type="button" id="saveLogBtn" class="btn-secondary full-width">💾 Save Cook to Log</button>
+            </div>
+        </div>
+
+        <!-- SAVED COOK LOGS -->
+        <div id="savedLogsSection" class="saved-logs-section hidden">
+            <div class="section-title">Saved Pitmaster Logs</div>
+            <div id="savedLogsList" class="saved-logs-list"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
